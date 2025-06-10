@@ -234,3 +234,123 @@ try {
     System.out.println("Error: " + e.getMessage());
 }
 ```
+
+## Design Decisions
+
+### 1. Open-Closed Principle Implementation
+- **Calculator Class**: Remains unchanged when new operations are added
+- **Operation Enum**: Can be extended with new operations
+- **Strategy Pattern**: New operation handlers implement common interface
+- **Registration Mechanism**: Dynamic operation handler registration
+
+### 2. IoC Compatibility
+```java
+// Constructor injection support
+@Component
+public class Calculator {
+    private final Map<Operation, OperationHandler> operationHandlers;
+
+    @Autowired
+    public Calculator(Map<Operation, OperationHandler> operationHandlers) {
+        this.operationHandlers = operationHandlers;
+    }
+
+    // Default constructor with standard operations
+    public Calculator() {
+        this(getDefaultOperationHandlers());
+    }
+}
+
+// REST Controller with dependency injection
+@RestController
+@RequestMapping("/api/calculator")
+public class CalculatorController {
+    private final Calculator calculator;
+
+    @Autowired
+    public CalculatorController(Calculator calculator) {
+        this.calculator = calculator;
+    }
+}
+```
+
+### 3. Error Handling Strategy
+- **Input Validation**: Null checks and type validation
+- **Operation Validation**: Graceful handling of unsupported operations
+- **Mathematical Errors**: Division by zero, overflow handling
+- **Custom Exceptions**: Meaningful error messages
+
+### 4. Number Type Flexibility
+- Supports various Number types (Integer, Double, BigDecimal)
+- Maintains precision based on input types
+- Handles type coercion appropriately
+
+## Extensibility
+
+### Adding New Operations
+
+1. **Add to Operation Enum**:
+```java
+public enum Operation {
+    ADD, SUBTRACT, MULTIPLY, DIVIDE, 
+    POWER, SQRT, MOD  // New operations
+}
+```
+
+2. **Implement Operation Handler**:
+```java
+public class PowerHandler implements OperationHandler {
+    @Override
+    public Number execute(Number num1, Number num2) {
+        return Math.pow(num1.doubleValue(), num2.doubleValue());
+    }
+    
+    @Override
+    public Operation getSupportedOperation() {
+        return Operation.POWER;
+    }
+}
+```
+
+3. **Register Handler**:
+```java
+operationHandlers.put(Operation.POWER, new PowerHandler());
+```
+
+## Testing
+
+### Running Tests
+```bash
+# Run all tests
+mvn test
+
+# Run specific test class
+mvn test -Dtest=CalculatorTest
+
+# Run API integration tests
+mvn test -Dtest=CalculatorControllerTest
+
+# Run tests with coverage
+mvn test jacoco:report
+
+# Run only unit tests (exclude integration tests)
+mvn test -Dtest=!*ControllerTest
+```
+
+## Production Readiness
+
+### Code Quality
+- **Static Analysis**: Checkstyle, PMD, SpotBugs integration
+- **Code Coverage**: Minimum 90% test coverage requirement
+- **Documentation**: Comprehensive Javadoc documentation
+- **Logging**: Structured logging with appropriate levels
+
+### Build and Deployment
+```bash
+# Create production JAR
+mvn clean package
+
+# Run with specific profile
+mvn clean package -Pproduction
+```
+
